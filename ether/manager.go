@@ -40,7 +40,7 @@ func (m *Manager) Listen() (error) {
 
 		m.logger.Info("Serving", conn.RemoteAddr().String())
 
-		client := InitialiseConnection(conn)
+		client := InitialiseConnection(conn, m.logger)
 		m.clients = append(m.clients, client)
 
 		go client.Serve()

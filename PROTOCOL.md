@@ -14,7 +14,7 @@ A client first initiate a connexion to a server then sends a "hey" package, with
 Packet to which the server acknowledges: (see error handling at the end)
     `s->c: 0xa0`
 
-The client will then proceeds to send its private key:
+The client will then proceeds to send its public key:
     `c->s: 0x0e1f 0800xxxxxxx`, first 2 bytes are constant then two bytes for the key length, following by the key itself
 
 The server acknowledges again:
