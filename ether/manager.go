@@ -1,39 +1,45 @@
 package ether
 
+
 import "net"
+import "log/slog"
+import "strconv"
 
 type Manager struct {
-    listenPort  int
-    stop        bool
+	listenPort  	int
+	stop		bool
+	logger		*slog.Logger
+	clients		[]Connection
 }
 
-func Initialise(port int) (*Manager) {
-    newManager := new(Manager)
-    newManager.listenPort = port
+func Initialise(port int, log *slog.Logger) (*Manager) {
+	newManager := new(Manager)
 
-    return Manager
+	newManager.listenPort = port
+	newManager.stop = false
+	newManager.logger = log
+
+	return newManager
 }
 
-func (*Manager) HandleConnection(conn net.Conn) (error) {
-    // Do stuff
-}
+func (m *Manager) Listen() (error) {
+	ln, err := net.Listen("tcp", ":" + strconv.Itoa(m.listenPort))
+	
+	if err != nil {
+		m.logger.Warn("An error got caught while trying to bind:", err)
+		return err
+	}
 
-func (*Manager) Listen() (error) {
-    ln, err := net.Listen("tcp", ":"+listenPort)
+	for !m.stop {
+		conn, err := ln.Accept()
 
-    if err != nil {
-        logger.Warn("An error has been encountered while trying to bind to the port: ", err)
-        return err
-    }
+		if err != nil {
+			m.logger.Warn("There has been an issue when a client tried to connect:", err)
+		}
 
-    for !stop {
-        conn, err := ln.Accept()
+		m.logger.Info("Serving", conn.RemoteAddr().String())
 
-        if err != nil {
-            logger.Warn("An error has been encountered while a user is connecting")
-        }
+	}
 
-        logger.Info("Handling connection from", conn.RemoteAddr().String())
-        go HandleConnection(conn)
-    }
+	return nil
 }

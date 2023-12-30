@@ -10,6 +10,8 @@ func main() {
     fmt.Println("ola :D")
     ether.Test()
 
-    manager := ether.Initialise()
+    log := logger.GetLogger()
+
+    manager := ether.Initialise(2142, log)
     manager.Listen()
 }

@@ -1,11 +1,8 @@
 package logger
 
-import "os"
 import "log/slog"
+import "os"
 
-
-func GetLoggers() (*slog.Logger) {
-    logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-    return logger
+func GetLogger() (*slog.Logger) {
+	return slog.New(slog.NewTextHandler(os.Stdout, nil))
 }
