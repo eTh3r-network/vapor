@@ -38,7 +38,7 @@ func (m *Manager) Listen() (error) {
 			m.logger.Warn("There has been an issue when a client tried to connect:", err)
 		}
 
-		m.logger.Info("Serving", conn.RemoteAddr().String())
+		m.logger.Info("Serving", "addr", conn.RemoteAddr().String())
 
 		client := InitialiseConnection(conn, m.logger)
 		m.clients = append(m.clients, client)

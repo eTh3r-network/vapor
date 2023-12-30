@@ -31,6 +31,11 @@ func InitialiseConnection(conn net.Conn, log *slog.Logger) (*Connection) {
 }
 
 func (c *Connection) handleErr(level int, _type byte) {
+	_, err := c.bind.Write([]byte{_type})
+
+	if err != nil {
+		c.log.Warn("There has been an error transmitting the error code. Bad luck .-.", "level", level)
+	}
 }
 
 func (c *Connection) ack() (error) {
@@ -67,15 +72,13 @@ func (c *Connection) Serve() {
 		c.handleErr(0, 0xa1)
 	}
 
-	var version uint16
-
-	version = binary.BigEndian.Uint16(buff[4:6])
+	version := binary.BigEndian.Uint16(buff[4:6])
 	
 	switch version {
 		case 0x0001:
 			c.serve0001()
 		default:
-			c.log.Warn("Unsupported version", version)
+			c.log.Warn("Unsupported version", "ver", version)
 			c.handleErr(0, 0xa3)
 	}
 }

@@ -106,12 +106,12 @@ func (c *Connection) serve0001() {
 		case 0xbf:
 			// Disconnect
 			c.log.Info("Client disconnecting")
-			c.ack()
+			_ = c.ack()
 
 			return
 
 		default:
-			c.log.Warn("Unknown packet:", buff[0])
+			c.log.Warn("Unknown packet:", "pkid", buff[0])
 			c.handleErr(2, 0xfd)
 			continue
 		}

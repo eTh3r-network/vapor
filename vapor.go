@@ -13,5 +13,5 @@ func main() {
     log := logger.GetLogger()
 
     manager := ether.Initialise(2142, log)
-    manager.Listen()
+    _ = manager.Listen()
 }
