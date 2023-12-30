@@ -9,7 +9,8 @@ type Manager struct {
 	listenPort  	int
 	stop		bool
 	logger		*slog.Logger
-	clients		[]Connection
+	clients		[]*Connection
+	rooms		[]*Room
 }
 
 func Initialise(port int, log *slog.Logger) (*Manager) {
@@ -39,6 +40,10 @@ func (m *Manager) Listen() (error) {
 
 		m.logger.Info("Serving", conn.RemoteAddr().String())
 
+		client := InitialiseConnection(conn)
+		m.clients = append(m.clients, client)
+
+		go client.Serve()
 	}
 
 	return nil
