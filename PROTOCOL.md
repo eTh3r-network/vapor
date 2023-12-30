@@ -74,3 +74,20 @@ A client can ask for the closing of a room:
 The server broadcasts the termination and acknowledges:
     `s->c2: 0xaf04dddd`, a copy
     `s->c1: 0xa0af`, constant
+
+
+# Error codes
+
+| Code | Description |
+|----|----|
+|`0xa1`| Wrong packet length (handshake) |
+|`0xa2`| Wrong packet identifier (handshake) |
+|`0xa4`| Unsupported version |
+|`0xaa`| Error while receiving the key (minimal length not satisfied |
+|`0xab`| Key packet malformed (wrong constant, not following path) |
+|`0xac`| Key payload malformed (wrong length) |
+|`0xba`| General packer handler, malformation (null length) |
+|`0xe0`| Out of path |
+|`0xfd`| General packet handler, unkown packed id |
+|`0xfe`| Not implemented |
+|`0xff`| Error while reading the packet |

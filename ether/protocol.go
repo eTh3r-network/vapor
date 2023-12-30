@@ -64,12 +64,12 @@ func (c *Connection) Serve() {
 
 	if l != 6 {
 		c.log.Warn("The client sent a wrong amount of data")
-		c.handleErr(0, 0xa0)
+		c.handleErr(0, 0xa1)
 	}
 
 	if buff[0] != 0x05 || buff[1] != 0x31 || buff[2] != 0x80 || buff[3] != 0x08 {
 		c.log.Warn("Wrong payload, first message")
-		c.handleErr(0, 0xa1)
+		c.handleErr(0, 0xa2)
 	}
 
 	version := binary.BigEndian.Uint16(buff[4:6])
@@ -79,7 +79,7 @@ func (c *Connection) Serve() {
 			c.serve0001()
 		default:
 			c.log.Warn("Unsupported version", "ver", version)
-			c.handleErr(0, 0xa3)
+			c.handleErr(0, 0xa4)
 	}
 }
 
