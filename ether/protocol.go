@@ -65,16 +65,22 @@ func (c *Connection) Serve() {
 	if err != nil {
 		c.log.Warn("An error has been caught reading a message")
 		c.handleErr(0, 0xff)
+
+		return
 	}
 
 	if l != 6 {
 		c.log.Warn("The client sent a wrong amount of data")
 		c.handleErr(0, 0xa1)
+
+		return
 	}
 
 	if buff[0] != 0x05 || buff[1] != 0x31 || buff[2] != 0x80 || buff[3] != 0x08 {
 		c.log.Warn("Wrong payload, first message")
 		c.handleErr(0, 0xa2)
+
+		return
 	}
 
 	version := binary.BigEndian.Uint16(buff[4:6])
