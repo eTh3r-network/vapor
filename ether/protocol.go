@@ -44,7 +44,7 @@ func (c *Connection) handleErr(level int, _type byte) {
 }
 
 func (c *Connection) ack() (error) {
-	_, err := c.bind.Write([]byte{0x0a})
+	_, err := c.bind.Write([]byte{0xa0})
 
 	if err != nil {
 		c.log.Warn("There has been an error while sending ack packet to client:", err)
