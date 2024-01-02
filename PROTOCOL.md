@@ -14,7 +14,7 @@ A client first initiate a connexion to a server then sends a "hey" package, with
 Packet to which the server acknowledges: (see error handling at the end)
     `s->c: 0xa0`
 
-The client will then proceeds to send its private key:
+The client will then proceeds to send its public key:
     `c->s: 0x0e1f 0800xxxxxxx`, first 2 bytes are constant then two bytes for the key length, following by the key itself
 
 The server acknowledges again:
@@ -74,3 +74,20 @@ A client can ask for the closing of a room:
 The server broadcasts the termination and acknowledges:
     `s->c2: 0xaf04dddd`, a copy
     `s->c1: 0xa0af`, constant
+
+
+# Error codes
+
+| Code | Description |
+|----|----|
+|`0xa1`| Wrong packet length (handshake) |
+|`0xa2`| Wrong packet identifier (handshake) |
+|`0xa4`| Unsupported version |
+|`0xaa`| Error while receiving the key (minimal length not satisfied) |
+|`0xab`| Key packet malformed (wrong constant, not following path) |
+|`0xac`| Key payload malformed (wrong length) |
+|`0xba`| General packer handler, malformation (null length) |
+|`0xe0`| Out of path |
+|`0xfd`| General packet handler, unkown packed id |
+|`0xfe`| Not implemented |
+|`0xff`| Error while reading the packet |
