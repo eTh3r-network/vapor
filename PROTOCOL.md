@@ -83,7 +83,7 @@ The server broadcasts the termination and acknowledges:
 |`0xa1`| Wrong packet length (handshake) |
 |`0xa2`| Wrong packet identifier (handshake) |
 |`0xa4`| Unsupported version |
-|`0xaa`| Error while receiving the key (minimal length not satisfied |
+|`0xaa`| Error while receiving the key (minimal length not satisfied) |
 |`0xab`| Key packet malformed (wrong constant, not following path) |
 |`0xac`| Key payload malformed (wrong length) |
 |`0xba`| General packer handler, malformation (null length) |
