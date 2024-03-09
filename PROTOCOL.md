@@ -4,12 +4,14 @@ This file aims to detail the eTh3r protocol to its latest version.
 
 eTh3r is a project aiming at providing end-to-end encryption using open source hardware, eliminating any risk for a 3rd party reading on the conversation. The protocol used is called by the same name.
 
-Each client is *uinque* and identified by *it's public key id* that it transfers to the server during the handshake.
+Each client is *unique* and identified by its *public key id* that it recieves from the server when handshaking with its *public key*.
+*Public key* length can't be longer than `0xFFFF` bytes, thus their length will be expressed on 2 bytes.
+*Public key id* lenght can't be longer than `0xFF` bytes, thus their length will be expressed on 1 byte.
 
 ## Initialisation
 
-A client first initiate a connexion to a server then sends a "hey" package, with its version:
-- `c->s: 0x0531b00b 0001`, first 4 bytes are constant and last two are for the version
+A client first initiates a connexion to a server then sends a "hey" package, with its version:
+- `c->s: 0x0531b00b 0001`, first 4 bytes are constant (`0x0531b00b`) and last two are for the version (`0x0001`)
 
 Packet to which the server acknowledges: (see error handling at the end)
 - `s->c: 0xa0`
@@ -20,7 +22,6 @@ The client will then proceeds to send its public key:
 The server acknowledges again:
 - `s->c: 0xa0`
 
-
 This covers pretty much everything about initialisation.
 
 ## Knocking
@@ -28,7 +29,7 @@ This covers pretty much everything about initialisation.
 In order for a client c1 to initiate a communication with a client c2, it needs to ask its consent. We call that a knock.
 
 c1 knocks c2:
-- `c1->s: 0xee 08bbbb`, first byte is constant, followed by (`lenght`+1) bytes for c2's key id: `[length, c2_uid]` (key id length is written on the first byte)
+- `c1->s: 0xee 08bbbb`, first byte is constant, followed by (`lenght`+1) bytes for c2's key id: `[length, c2_uid]` 
 The server acknowledges the knock and transmits to c2:
 - `s->c1: 0xa0 ee`, constant
 - `s->c2: 0xae 08aaaa`, first byte is constant, followed by (`lenght`+1) bytes for c1's key id: `[length, c1_uid]`
