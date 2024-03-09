@@ -4,7 +4,7 @@ This file aims to detail the eTh3r protocol to its latest version.
 
 eTh3r is a project aiming at providing end-to-end encryption using open source hardware, eliminating any risk for a 3rd party reading on the conversation. The protocol used is called by the same name.
 
-Each client is *unique* and identified by its *public key id* that it recieves from the server when handshaking with its *public key*.
+Each client is *unique* and identified by its *public key id* that links it to its *public key*.
 *Public key* length can't be longer than `0xFFFF` bytes, thus their length will be expressed on 2 bytes.
 *Public key id* lenght can't be longer than `0xFF` bytes, thus their length will be expressed on 1 byte.
 
