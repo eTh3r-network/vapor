@@ -5,29 +5,33 @@
 
 package ether
 
-import "fmt"
-import "net"
-import "log/slog"
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+	"log/slog"
+	"net"
+)
 
 type Room struct {
-	roomId	uint8
+	roomId  uint64
+	clients []*Connection
 }
 
 type Connection struct {
-	authState   	int
-	key         	[]byte
-	keyId       	[]byte
-	keyLength   	uint16
-	rooms       	[]*Room
+	authState   int
+	key         []byte
+	keyId       []byte
+	keyLength   uint16
+	keyIdLength uint16
+	rooms       []*Room
 
-	bind		net.Conn
-	log 		*slog.Logger
+	bind net.Conn
+	log  *slog.Logger
 }
 
-func InitialiseConnection(conn net.Conn, log *slog.Logger) (*Connection) {
+func InitialiseConnection(conn net.Conn, log *slog.Logger) *Connection {
 	newConn := new(Connection)
-	
+
 	newConn.authState = 0
 	newConn.bind = conn
 	newConn.log = log
@@ -43,7 +47,7 @@ func (c *Connection) handleErr(level int, _type byte) {
 	}
 }
 
-func (c *Connection) ack() (error) {
+func (c *Connection) ack() error {
 	_, err := c.bind.Write([]byte{0xa0})
 
 	if err != nil {
@@ -57,7 +61,7 @@ func (c *Connection) abandon() {
 	_ = c.bind.Close()
 }
 
-func (c *Connection) Serve() {
+func (c *Connection) Serve(m *Manager) {
 	var buff []byte
 
 	l, err := c.bind.Read(buff)
@@ -84,14 +88,22 @@ func (c *Connection) Serve() {
 	}
 
 	version := binary.BigEndian.Uint16(buff[4:6])
-	
+
 	switch version {
-		case 0x0001:
-			c.serve0001()
-		default:
-			c.log.Warn("Unsupported version", "ver", version)
-			c.handleErr(0, 0xa4)
+	case 0x0001:
+		c.serve0001(m)
+	default:
+		c.log.Warn("Unsupported version", "ver", version)
+		c.handleErr(0, 0xa4)
 	}
+}
+
+func (c *Connection) NotifyRoomClose(r *Room) {
+	// TODO
+}
+
+func (c *Connection) ComputeKeyId() int {
+	return 0
 }
 
 func Test() {

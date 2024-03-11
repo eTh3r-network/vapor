@@ -7,9 +7,9 @@ package ether
 
 import "encoding/binary"
 
-func (c *Connection) serve0001() {
+func (c *Connection) serve0001(manager *Manager) {
 	c.authState = 1
-	
+
 	if err := c.ack(); err != nil {
 		c.abandon()
 		return
@@ -48,7 +48,7 @@ func (c *Connection) serve0001() {
 		keyLength := binary.BigEndian.Uint16(buff[2:4])
 
 		// Verify message length
-		if uint16(len(buff)) != uint16(4) + keyLength {
+		if uint16(len(buff)) != uint16(4)+keyLength {
 			c.log.Warn("Key payload malformation")
 			c.handleErr(1, 0xac)
 
@@ -56,13 +56,20 @@ func (c *Connection) serve0001() {
 		}
 
 		// Store key and key length
-		c.keyLength = keyLength 
-		c.key = buff[4:4+keyLength]
+		c.keyLength = keyLength
+		c.key = buff[4 : 4+keyLength]
 
 		pass = true
 	}
 
 	c.authState = 2
+
+	if err := c.ComputeKeyId(); err != 0 {
+		c.log.Warn("Could not derive KeyId from PubKey")
+		c.handleErr(2, 0xad)
+	}
+
+	manager.RegisterConnection(c)
 
 	if err := c.ack(); err != nil {
 		c.abandon() // there is no reason to reach this
@@ -84,7 +91,6 @@ func (c *Connection) serve0001() {
 			c.log.Warn("Packet malformed")
 			c.handleErr(2, 0xba)
 		}
-
 
 		switch buff[0] {
 		case 0xba:
@@ -122,4 +128,3 @@ func (c *Connection) serve0001() {
 		}
 	}
 }
-
