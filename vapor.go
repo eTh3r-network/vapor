@@ -5,18 +5,19 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-import "github.com/eTh3r-network/vapor/ether"
-import "github.com/eTh3r-network/vapor/logger"
-
+	"github.com/eTh3r-network/vapor/ether"
+	"github.com/eTh3r-network/vapor/logger"
+)
 
 func main() {
-    fmt.Println("ola :D")
-    ether.Test()
+	fmt.Println("ola :D")
+	ether.Test()
 
-    log := logger.GetLogger()
+	log := logger.GetLogger()
 
-    manager := ether.Initialise(2142, log)
-    _ = manager.Listen()
+	manager := ether.Initialise(2142, log)
+	_ = manager.Listen()
 }

@@ -71,6 +71,8 @@ func (c *Connection) serve0001(manager *Manager) {
 
 	manager.RegisterConnection(c)
 
+	c.authState = 3
+
 	if err := c.ack(); err != nil {
 		c.abandon() // there is no reason to reach this
 		return
@@ -81,7 +83,7 @@ func (c *Connection) serve0001(manager *Manager) {
 
 		if err != nil {
 			c.log.Warn("There has been an error reading pkt", err)
-			c.handleErr(2, 0xff)
+			c.handleErr(3, 0xff)
 
 			continue
 		}
@@ -89,13 +91,27 @@ func (c *Connection) serve0001(manager *Manager) {
 		// should at least have a cons
 		if l < 1 {
 			c.log.Warn("Packet malformed")
-			c.handleErr(2, 0xba)
+			c.handleErr(3, 0xba)
 		}
 
 		switch buff[0] {
 		case 0xba:
-			// Asking for a key
-			c.handleErr(2, 0xfe)
+			c.log.Debug("Fetching user", buff[2:])
+			conn := manager.FetchUserById(buff[2:])
+
+			if conn == nil {
+				respBuff := []byte{0xca}
+				respBuff = append(respBuff[:], buff)
+
+				_, err := c.bind.Write(respBuff)
+
+				if err != nil {
+					c.log.Warn("user could not be found")
+				}
+
+				continue
+			}
+
 			continue
 		case 0xee:
 			// Knock

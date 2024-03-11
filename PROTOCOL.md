@@ -88,6 +88,7 @@ The server broadcasts the termination and acknowledges:
 |`0xac`| Key payload malformed (wrong length) |
 |`0xad`| Key id could not be generated |
 |`0xba`| General packer handler, malformation (null length) |
+|`0xca`| User not found |
 |`0xe0`| Out of path |
 |`0xfd`| General packet handler, unkown packed id |
 |`0xfe`| Not implemented |
