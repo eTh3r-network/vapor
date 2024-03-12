@@ -1,0 +1,60 @@
+direction: right
+
+protocol: eth3r protocol 0.1-beta {
+  connection: Connection {
+    c1: Client
+    server: Server
+    shape: sequence_diagram
+    c1 -> server: Send Version \n 0x0531b00b <version>
+    server -> c1: ACK \n 0xa0
+    c1 -> server: Send KEY \n 0x0e1f <key>
+    server -> c1: ACK \n 0xa0
+  }
+
+  knock: Knocking someone {
+    c1: Client
+    server: Server
+    c2: Client
+    shape: sequence_diagram
+    c1 -> server: Knock other client \n 0xee <c2 uid>
+    server -> c1: ACK \n 0xa0
+    server -> c2: Forward knock \n 0xae <c1 uid>
+    c2 -> server: Accept knock \n 0xab <response> <c1 uid>
+    server -> c1: Forward response \n 0xa0 <response> <c2 uid>
+    server -> c1: Send room id \n 0xac <room id> <c2 uid>
+    server -> c2: Send room id \n 0xac <room id> <c1 uid>
+  }
+
+  key_retrieve: Key retrieval {
+    c1: Client
+    server: Server
+    shape: sequence_diagram
+    c1 -> server: Ask for key \n 0xba <c2 uid>
+    server -> c1: Send Key \n 0xa0ba <c2 key>
+    server -> c1: If Key is unknown \n 0xcaba <c2 uid>
+  }
+
+  send_message: Send message {
+    c1: Client
+    server: Server
+    c2: Client
+    shape: sequence_diagram
+    c1 -> server: Send message \n 0xda <room id> <encryption> <payload>
+    server -> c1: ACK \n 0xa0da
+    server -> c2: Forward message \n 0xda <room id> <encryption> <payload>
+  }
+
+  room_termination: Room termination {
+    c1: Client
+    server: Server
+    c2: Client
+    shape: sequence_diagram
+    c1 -> server: Ask to terminate room \n 0xaf <room id>
+    server -> c1: ACK \n 0xa0af
+    server -> c2: Forward terminate instruction \n 0xaf <room id>
+  }
+  connection -> knock
+  connection -> key_retrieve
+  knock -> send_message
+  knock -> room_termination
+}
