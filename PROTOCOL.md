@@ -91,3 +91,7 @@ The server broadcasts the termination and acknowledges:
 |`0xfd`| General packet handler, unkown packed id |
 |`0xfe`| Not implemented |
 |`0xff`| Error while reading the packet |
+
+# Sequence diagram
+
+![Sequence diagram](d2.svg)
