@@ -20,7 +20,7 @@ protocol: eth3r protocol 0.1-beta {
     server -> c1: ACK \n 0xa0
     server -> c2: Forward knock \n 0xae <c1 uid>
     c2 -> server: Accept knock \n 0xab <response> <c1 uid>
-    server -> c1: Forward response \n 0xa0 <response> <c2 uid>
+    server -> c1: Forward response \n 0xab <response> <c2 uid>
     server -> c1: Send room id \n 0xac <room id> <c2 uid>
     server -> c2: Send room id \n 0xac <room id> <c1 uid>
   }
