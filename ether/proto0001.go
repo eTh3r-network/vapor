@@ -112,6 +112,20 @@ func (c *Connection) serve0001(manager *Manager) {
 				continue
 			}
 
+			keyBuff = make([]byte, 2)
+ 			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
+			keyBuff = append(keyBuff, conn.key) // append the key 
+
+
+			respBuff := []byte{0xa0, 0xba}
+			respBuff = append(respBuff[:], response[:]) // prepend the pck id 
+
+			_, err := c.bin.Write(respBuff) // write 
+
+			if err != nil {
+				c.log.Warn("Could not send the user key, internal server error")
+			}
+
 			continue
 		case 0xee:
 			// Knock
