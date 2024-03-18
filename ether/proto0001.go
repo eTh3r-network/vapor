@@ -100,13 +100,15 @@ func (c *Connection) serve0001(manager *Manager) {
 			conn := manager.FetchUserById(buff[2:])
 
 			if conn == nil {
+				c.log.Warn("Could not find user")
+
 				respBuff := []byte{0xca}
 				respBuff = append(respBuff[:], buff)
 
 				_, err := c.bind.Write(respBuff)
 
 				if err != nil {
-					c.log.Warn("user could not be found")
+					c.log.Warn("Could not send message")
 				}
 
 				continue
@@ -118,7 +120,7 @@ func (c *Connection) serve0001(manager *Manager) {
 
 
 			respBuff := []byte{0xa0, 0xba}
-			respBuff = append(respBuff[:], response[:]) // prepend the pck id 
+			respBuff = append(respBuff[:], keyBuff[:]) // prepend the pck id 
 
 			_, err := c.bin.Write(respBuff) // write 
 
