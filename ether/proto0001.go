@@ -96,8 +96,8 @@ func (c *Connection) serve0001(manager *Manager) {
 
 		switch buff[0] {
 		case 0xba:
-			c.log.Debug("Fetching user", buff[2:])
-			conn := manager.FetchUserById(buff[2:])
+			c.log.Debug("Fetching user", buff[1:])
+			conn := manager.FetchUserById(buff[1:])
 
 			if conn == nil {
 				c.log.Warn("Could not find user")
@@ -122,7 +122,7 @@ func (c *Connection) serve0001(manager *Manager) {
 			respBuff := []byte{0xa0, 0xba}
 			respBuff = append(respBuff[:], keyBuff[:]) // prepend the pck id 
 
-			_, err := c.bin.Write(respBuff) // write 
+			_, err := c.bind.Write(respBuff) // write 
 
 			if err != nil {
 				c.log.Warn("Could not send the user key, internal server error")
@@ -131,12 +131,73 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		case 0xee:
 			// Knock
-			c.handleErr(2, 0xfe)
+			c2 := buff[1:]
+
+			kLength := 0
+			binary.LittleEndian.PutUint16(c2[:2], kLength)
+
+			if len(c2) - 4 != kLength {
+			    	c.log.Warn("Wrong packet length")
+				c.handleErr(2, 0xa1)
+
+				continue
+			}
+
+			c.log.Debug("Fetching user", c2[2:])
+			c2Conn := manager.FetchUserById(c2[2:])
+
+			if c2Conn == nil {
+				c.log.Warn("Could not find c2")
+				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
+				
+				continue
+			}
+
+			c2Conn.SendKnock0001(c)
+
+			if _, err := c.bind.Write([]byte{0xa0, 0xee}); err != nil {
+				c.log.Warn("Could not send the ack pkg")
+
+				continue
+			}
+
 			continue
 		case 0xab:
 			// Knock ans
-			c.log.Warn("Pckt out of path")
-			c.handleErr(2, 0xe0)
+
+			respVal := (buff[1] == 0x01)
+
+			c2 := buff[2:]
+
+			kLength := 0
+			binary.LittleEndian.PutUint16(c2[:2], kLength)
+
+			if len(c2) - 5 != kLength {
+			    	c.log.Warn("Wrong packet length")
+				c.handleErr(2, 0xa1)
+
+				continue
+			}
+
+			c.log.Debug("Fetching user", c2[2:])
+			c2Conn := manager.FetchUserById(c2[2:])
+
+			if c2Conn == nil {
+				c.log.Warn("Could not find c2")
+				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
+				
+				continue
+			}
+
+			if _, err := c2Conn.bind.Write(buff); err != nil {
+				c2Conn.log.Warn("Could not send pkg")
+			}
+
+			r := manager.SpawnRoom()
+
+			c.NotifyRoom(r, c2Conn)
+			c2Conn.NotifyRoom(r, c)
+
 			continue
 		case 0xda:
 			// Message
@@ -159,4 +220,12 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		}
 	}
+}
+
+func (c *Connection) SendKnock0001(c2 *Connection) {
+	return
+}
+
+func (c *Connection) NotifyRoom(r *Room, c2 *Connection) {
+	return
 }
