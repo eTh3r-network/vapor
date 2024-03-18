@@ -5,32 +5,38 @@
 
 package ether
 
-
-import "net"
-import "log/slog"
-import "strconv"
+import (
+	b64 "encoding/base64"
+	"log/slog"
+	"net"
+	"strconv"
+)
 
 type Manager struct {
-	listenPort  	int
-	stop		bool
-	logger		*slog.Logger
-	clients		[]*Connection
-	rooms		[]*Room
+	listenPort    int
+	stop          bool
+	logger        *slog.Logger
+	clients       []*Connection
+	authedClients map[string]*Connection
+	rooms         map[uint64]*Room
 }
 
-func Initialise(port int, log *slog.Logger) (*Manager) {
+func Initialise(port int, log *slog.Logger) *Manager {
 	newManager := new(Manager)
 
 	newManager.listenPort = port
 	newManager.stop = false
 	newManager.logger = log
 
+	newManager.authedClients = make(map[string]*Connection)
+	newManager.rooms = make(map[uint64]*Room)
+
 	return newManager
 }
 
-func (m *Manager) Listen() (error) {
-	ln, err := net.Listen("tcp", ":" + strconv.Itoa(m.listenPort))
-	
+func (m *Manager) Listen() error {
+	ln, err := net.Listen("tcp", ":"+strconv.Itoa(m.listenPort))
+
 	if err != nil {
 		m.logger.Warn("An error got caught while trying to bind:", err)
 		return err
@@ -48,8 +54,61 @@ func (m *Manager) Listen() (error) {
 		client := InitialiseConnection(conn, m.logger)
 		m.clients = append(m.clients, client)
 
-		go client.Serve()
+		go client.Serve(m)
 	}
 
 	return nil
+}
+
+func (m *Manager) RegisterConnection(c *Connection) {
+	hash := b64.StdEncoding.EncodeToString(c.keyId)
+
+	m.authedClients[hash] = c
+}
+
+func (m *Manager) DropClient(c *Connection) {
+	hash := b64.StdEncoding.EncodeToString(c.keyId)
+
+	delete(m.authedClients, hash)
+}
+
+func (m *Manager) RegisterRoom(r *Room) {
+	m.rooms[r.roomId] = r
+}
+
+func (m *Manager) DropRoom(r *Room) {
+	for _, client := range r.clients {
+		client.NotifyRoomClose(r)
+	}
+
+	delete(m.rooms, r.roomId)
+}
+
+func (m *Manager) FetchUserById(keyId []byte) *Connection {
+	keyIdLength := uint16(len(keyId))
+
+	for _, conn := range m.clients {
+		if conn.authState >= 3 && conn.keyIdLength == keyIdLength {
+			// If the key has been handed over, keyid computed then, looking for a match
+			if compare(keyId, conn.keyId) {
+				return conn
+			}
+		}
+	}
+
+	return nil
+}
+
+func compare(k1 []byte, k2 []byte) bool {
+	if len(k1) != len(k2) {
+		return false
+	}
+
+	for i, a := range k1 {
+		if a != k2[i] {
+			return false
+		}
+	}
+
+	return true
 }

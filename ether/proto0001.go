@@ -7,9 +7,9 @@ package ether
 
 import "encoding/binary"
 
-func (c *Connection) serve0001() {
+func (c *Connection) serve0001(manager *Manager) {
 	c.authState = 1
-	
+
 	if err := c.ack(); err != nil {
 		c.abandon()
 		return
@@ -48,7 +48,7 @@ func (c *Connection) serve0001() {
 		keyLength := binary.BigEndian.Uint16(buff[2:4])
 
 		// Verify message length
-		if uint16(len(buff)) != uint16(4) + keyLength {
+		if uint16(len(buff)) != uint16(4)+keyLength {
 			c.log.Warn("Key payload malformation")
 			c.handleErr(1, 0xac)
 
@@ -56,13 +56,22 @@ func (c *Connection) serve0001() {
 		}
 
 		// Store key and key length
-		c.keyLength = keyLength 
-		c.key = buff[4:4+keyLength]
+		c.keyLength = keyLength
+		c.key = buff[4 : 4+keyLength]
 
 		pass = true
 	}
 
 	c.authState = 2
+
+	if err := c.ComputeKeyId(); err != 0 {
+		c.log.Warn("Could not derive KeyId from PubKey")
+		c.handleErr(2, 0xad)
+	}
+
+	manager.RegisterConnection(c)
+
+	c.authState = 3
 
 	if err := c.ack(); err != nil {
 		c.abandon() // there is no reason to reach this
@@ -74,7 +83,7 @@ func (c *Connection) serve0001() {
 
 		if err != nil {
 			c.log.Warn("There has been an error reading pkt", err)
-			c.handleErr(2, 0xff)
+			c.handleErr(3, 0xff)
 
 			continue
 		}
@@ -82,14 +91,43 @@ func (c *Connection) serve0001() {
 		// should at least have a cons
 		if l < 1 {
 			c.log.Warn("Packet malformed")
-			c.handleErr(2, 0xba)
+			c.handleErr(3, 0xba)
 		}
-
 
 		switch buff[0] {
 		case 0xba:
-			// Asking for a key
-			c.handleErr(2, 0xfe)
+			c.log.Debug("Fetching user", buff[2:])
+			conn := manager.FetchUserById(buff[2:])
+
+			if conn == nil {
+				c.log.Warn("Could not find user")
+
+				respBuff := []byte{0xca}
+				respBuff = append(respBuff[:], buff)
+
+				_, err := c.bind.Write(respBuff)
+
+				if err != nil {
+					c.log.Warn("Could not send message")
+				}
+
+				continue
+			}
+
+			keyBuff = make([]byte, 2)
+ 			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
+			keyBuff = append(keyBuff, conn.key) // append the key 
+
+
+			respBuff := []byte{0xa0, 0xba}
+			respBuff = append(respBuff[:], keyBuff[:]) // prepend the pck id 
+
+			_, err := c.bin.Write(respBuff) // write 
+
+			if err != nil {
+				c.log.Warn("Could not send the user key, internal server error")
+			}
+
 			continue
 		case 0xee:
 			// Knock
@@ -122,4 +160,3 @@ func (c *Connection) serve0001() {
 		}
 	}
 }
-
