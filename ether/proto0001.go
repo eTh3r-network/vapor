@@ -103,7 +103,7 @@ func (c *Connection) serve0001(manager *Manager) {
 				c.log.Warn("Could not find user")
 
 				respBuff := []byte{0xca}
-				respBuff = append(respBuff[:], buff)
+				respBuff = append(respBuff[:], buff[:]...)
 
 				_, err := c.bind.Write(respBuff)
 
@@ -114,13 +114,13 @@ func (c *Connection) serve0001(manager *Manager) {
 				continue
 			}
 
-			keyBuff = make([]byte, 2)
+			keyBuff := make([]byte, 2)
  			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
-			keyBuff = append(keyBuff, conn.key) // append the key 
+			keyBuff = append(keyBuff, conn.key...) // append the key 
 
 
 			respBuff := []byte{0xa0, 0xba}
-			respBuff = append(respBuff[:], keyBuff[:]) // prepend the pck id 
+			respBuff = append(respBuff[:], keyBuff[:]...) // prepend the pck id 
 
 			_, err := c.bind.Write(respBuff) // write 
 
@@ -133,10 +133,10 @@ func (c *Connection) serve0001(manager *Manager) {
 			// Knock
 			c2 := buff[1:]
 
-			kLength := 0
+			var kLength uint16 = 0
 			binary.LittleEndian.PutUint16(c2[:2], kLength)
 
-			if len(c2) - 4 != kLength {
+			if uint16(len(c2) - 4) != kLength {
 			    	c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 
@@ -166,13 +166,14 @@ func (c *Connection) serve0001(manager *Manager) {
 			// Knock ans
 
 			respVal := (buff[1] == 0x01)
+			c.log.Debug("%b", respVal)
 
 			c2 := buff[2:]
 
-			kLength := 0
+			var kLength uint16 = 0
 			binary.LittleEndian.PutUint16(c2[:2], kLength)
 
-			if len(c2) - 5 != kLength {
+			if uint16(len(c2) - 5) != kLength {
 			    	c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 

@@ -99,6 +99,10 @@ func (m *Manager) FetchUserById(keyId []byte) *Connection {
 	return nil
 }
 
+func (m *Manager) SpawnRoom() *Room {
+	return nil
+}
+
 func compare(k1 []byte, k2 []byte) bool {
 	if len(k1) != len(k2) {
 		return false
