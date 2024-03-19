@@ -96,8 +96,9 @@ func (c *Connection) serve0001(manager *Manager) {
 
 		switch buff[0] {
 		case 0xba:
+			// Key retrieval
 			c.log.Debug("Fetching user", buff[1:])
-			conn := manager.FetchUserById(buff[1:])
+			conn := manager.FetchUserById(buff[1:]) // conn is c2's connection
 
 			if conn == nil {
 				c.log.Warn("Could not find user")
@@ -114,7 +115,7 @@ func (c *Connection) serve0001(manager *Manager) {
 				continue
 			}
 
-			keyBuff := make([]byte, 2)
+			keyBuff := make([]byte, 2)                             // [length, key]
 			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
 			keyBuff = append(keyBuff, conn.key...)                 // append the key
 
@@ -130,20 +131,19 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		case 0xee:
 			// Knock
-			c2 := buff[1:]
+			c2 := buff[1:] // c2 is [length, keyId]
 
-			var kLength uint16 = 0
-			binary.LittleEndian.PutUint16(c2[:2], kLength)
+			kLength := uint(c2[0])
 
-			if uint16(len(c2)-4) != kLength {
+			if uint(len(c2)-2) != kLength { // 2 is 0xeeLL
 				c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 
 				continue
 			}
 
-			c.log.Debug("Fetching user", c2[2:])
-			c2Conn := manager.FetchUserById(c2[2:])
+			c.log.Debug("Fetching user", c2[1:])
+			c2Conn := manager.FetchUserById(c2[1:])
 
 			if c2Conn == nil {
 				c.log.Warn("Could not find c2")
@@ -152,7 +152,7 @@ func (c *Connection) serve0001(manager *Manager) {
 				continue
 			}
 
-			c2Conn.SendKnock0001(c)
+			c2Conn.SendKnock0001(c) // send knock to c2 from c
 
 			if _, err := c.bind.Write([]byte{0xa0, 0xee}); err != nil {
 				c.log.Warn("Could not send the ack pkg")
@@ -169,18 +169,17 @@ func (c *Connection) serve0001(manager *Manager) {
 
 			c2 := buff[2:]
 
-			var kLength uint16 = 0
-			binary.LittleEndian.PutUint16(c2[:2], kLength)
+			kLength := uint(c2[0])
 
-			if uint16(len(c2)-5) != kLength {
+			if uint(len(c2)-3) != kLength { // 3 is 0xabRR[LL,...]
 				c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 
 				continue
 			}
 
-			c.log.Debug("Fetching user", c2[2:])
-			c2Conn := manager.FetchUserById(c2[2:])
+			c.log.Debug("Fetching user", c2[1:])
+			c2Conn := manager.FetchUserById(c2[1:])
 
 			if c2Conn == nil {
 				c.log.Warn("Could not find c2")
@@ -243,7 +242,7 @@ func (c2 *Connection) SendKnock0001(c *Connection) error {
 	// Send a knock to c2 from c1
 	buff := []byte{0xae}
 
-	buff = append(buff, c.keyIdLength)
+	buff = append(buff, byte(c.keyIdLength))
 	buff = append(buff, c.keyId...)
 
 	_, err := c2.bind.Write(buff)

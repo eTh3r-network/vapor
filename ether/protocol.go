@@ -22,7 +22,7 @@ type Connection struct {
 	key         []byte
 	keyId       []byte
 	keyLength   uint16
-	keyIdLength uint16
+	keyIdLength uint
 	rooms       []*Room
 
 	bind net.Conn

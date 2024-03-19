@@ -85,7 +85,7 @@ func (m *Manager) DropRoom(r *Room) {
 }
 
 func (m *Manager) FetchUserById(keyId []byte) *Connection {
-	keyIdLength := uint16(len(keyId))
+	keyIdLength := uint(len(keyId))
 
 	for _, conn := range m.clients {
 		if conn.authState >= 3 && conn.keyIdLength == keyIdLength {
