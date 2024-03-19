@@ -202,7 +202,16 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		case 0xda:
 			// Message
-			c.handleErr(2, 0xfe)
+			var ridLength uint8 = buff[1]
+			rid := buff[2:2+ridLength]
+
+			room := manager.FetchRoom(rid)
+			room.SendMessageToRecipients0001(buff)
+
+			if _, err := c.bind.Write([]byte{0xa0, 0xda}); err != nil {
+				c.log.Warn("Could not send ack to message")
+			}
+
 			continue
 		case 0xaf:
 			// Room termination
@@ -229,4 +238,10 @@ func (c *Connection) SendKnock0001(c2 *Connection) {
 
 func (c *Connection) NotifyRoom(r *Room, c2 *Connection) {
 	return
+}
+
+func (r *Room) SendMessageToRecipients0001(buff []byte) []error {
+	var errs []error 
+
+	return errs
 }
