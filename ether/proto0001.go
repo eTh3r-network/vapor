@@ -220,7 +220,7 @@ func (c *Connection) serve0001(manager *Manager) {
 			room := manager.FetchRoom(rid)
 			room.SendMessageToAllRecipients0001(buff)
 
-			manager.TerminateRoom(room)
+			manager.DropRoom(room)
 
 			continue
 		case 0xbf:
@@ -267,13 +267,19 @@ func (c *Connection) NotifyRoom(r *Room, c2 *Connection) error {
 }
 
 func (r *Room) SendMessageToAllRecipients0001(buff []byte) []error {
-	var errs []error
-
-	return errs
+	return r.SendMessageToRecipients0001(buff, nil)
 }
 
 func (r *Room) SendMessageToRecipients0001(buff []byte, sender *Connection) []error {
 	var errs []error
+	var err error
+
+	for _, client := range r.clients {
+		if sender == nil || compare(client.keyId, sender.keyId) {
+			_, err = client.bind.Write(buff)
+			errs = append(errs, err)
+		}
+	}
 
 	return errs
 }

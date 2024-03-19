@@ -99,8 +99,15 @@ func (c *Connection) Serve(m *Manager) {
 	}
 }
 
-func (c *Connection) NotifyRoomClose(r *Room) {
-	// TODO
+func (c *Connection) NotifyRoomClose(r *Room) error {
+	buff := []byte{0xaf}
+
+	buff = append(buff, byte(r.roomIdLength))
+	buff = append(buff, r.roomId...)
+
+	_, err := c.bind.Write(buff)
+
+	return err
 }
 
 func (c *Connection) ComputeKeyId() int {

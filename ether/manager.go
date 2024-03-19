@@ -7,6 +7,7 @@ package ether
 
 import (
 	b64 "encoding/base64"
+	"encoding/binary"
 	"log/slog"
 	"net"
 	"strconv"
@@ -19,6 +20,7 @@ type Manager struct {
 	clients       []*Connection
 	authedClients map[string]*Connection
 	rooms         map[string]*Room
+	rCnt          uint64
 }
 
 func Initialise(port int, log *slog.Logger) *Manager {
@@ -30,6 +32,7 @@ func Initialise(port int, log *slog.Logger) *Manager {
 
 	newManager.authedClients = make(map[string]*Connection)
 	newManager.rooms = make(map[string]*Room)
+	newManager.rCnt = 0
 
 	return newManager
 }
@@ -104,15 +107,24 @@ func (m *Manager) FetchUserById(keyId []byte) *Connection {
 }
 
 func (m *Manager) SpawnRoom() *Room {
-	return nil
+	nR := new(Room)
+
+	binary.LittleEndian.PutUint64(nR.roomId, m.rCnt)
+	nR.roomIdLength = uint(8)
+
+	m.RegisterRoom(nR)
+
+	return nR
 }
 
 func (m *Manager) FetchRoom(rid []byte) *Room {
-	return nil
-}
+	for _, r := range m.rooms {
+		if compare(r.roomId, rid) {
+			return r
+		}
+	}
 
-func (m *Manager) TerminateRoom(room *Room) {
-	return
+	return nil
 }
 
 func compare(k1 []byte, k2 []byte) bool {
