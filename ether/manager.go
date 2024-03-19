@@ -18,7 +18,7 @@ type Manager struct {
 	logger        *slog.Logger
 	clients       []*Connection
 	authedClients map[string]*Connection
-	rooms         map[uint64]*Room
+	rooms         map[string]*Room
 }
 
 func Initialise(port int, log *slog.Logger) *Manager {
@@ -29,7 +29,7 @@ func Initialise(port int, log *slog.Logger) *Manager {
 	newManager.logger = log
 
 	newManager.authedClients = make(map[string]*Connection)
-	newManager.rooms = make(map[uint64]*Room)
+	newManager.rooms = make(map[string]*Room)
 
 	return newManager
 }
@@ -73,7 +73,9 @@ func (m *Manager) DropClient(c *Connection) {
 }
 
 func (m *Manager) RegisterRoom(r *Room) {
-	m.rooms[r.roomId] = r
+	hash := b64.StdEncoding.EncodeToString(r.roomId)
+
+	m.rooms[hash] = r
 }
 
 func (m *Manager) DropRoom(r *Room) {
@@ -81,7 +83,9 @@ func (m *Manager) DropRoom(r *Room) {
 		client.NotifyRoomClose(r)
 	}
 
-	delete(m.rooms, r.roomId)
+	hash := b64.StdEncoding.EncodeToString(r.roomId)
+
+	delete(m.rooms, hash)
 }
 
 func (m *Manager) FetchUserById(keyId []byte) *Connection {

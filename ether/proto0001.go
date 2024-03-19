@@ -250,8 +250,20 @@ func (c2 *Connection) SendKnock0001(c *Connection) error {
 	return err
 }
 
-func (c *Connection) NotifyRoom(r *Room, c2 *Connection) {
-	return
+func (c *Connection) NotifyRoom(r *Room, c2 *Connection) error {
+	// Notify the creation of the room R with the user c2 in it
+
+	buff := []byte{0xac}
+
+	buff = append(buff, byte(r.roomIdLength))
+	buff = append(buff, r.roomId...)
+
+	buff = append(buff, byte(c2.keyIdLength))
+	buff = append(buff, c2.keyId...)
+
+	_, err := c.bind.Write(buff)
+
+	return err
 }
 
 func (r *Room) SendMessageToAllRecipients0001(buff []byte) []error {

@@ -13,8 +13,9 @@ import (
 )
 
 type Room struct {
-	roomId  uint64
-	clients []*Connection
+	roomId       []byte
+	roomIdLength uint
+	clients      []*Connection
 }
 
 type Connection struct {
