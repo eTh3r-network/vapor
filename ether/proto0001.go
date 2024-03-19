@@ -96,14 +96,15 @@ func (c *Connection) serve0001(manager *Manager) {
 
 		switch buff[0] {
 		case 0xba:
-			c.log.Debug("Fetching user", buff[2:])
-			conn := manager.FetchUserById(buff[2:])
+			// Key retrieval
+			c.log.Debug("Fetching user", buff[1:])
+			conn := manager.FetchUserById(buff[1:]) // conn is c2's connection
 
 			if conn == nil {
 				c.log.Warn("Could not find user")
 
 				respBuff := []byte{0xca}
-				respBuff = append(respBuff[:], buff)
+				respBuff = append(respBuff[:], buff[:]...)
 
 				_, err := c.bind.Write(respBuff)
 
@@ -114,15 +115,14 @@ func (c *Connection) serve0001(manager *Manager) {
 				continue
 			}
 
-			keyBuff = make([]byte, 2)
- 			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
-			keyBuff = append(keyBuff, conn.key) // append the key 
-
+			keyBuff := make([]byte, 2)                             // [length, key]
+			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
+			keyBuff = append(keyBuff, conn.key...)                 // append the key
 
 			respBuff := []byte{0xa0, 0xba}
-			respBuff = append(respBuff[:], keyBuff[:]) // prepend the pck id 
+			respBuff = append(respBuff[:], keyBuff[:]...) // prepend the pck id
 
-			_, err := c.bin.Write(respBuff) // write 
+			_, err := c.bind.Write(respBuff) // write
 
 			if err != nil {
 				c.log.Warn("Could not send the user key, internal server error")
@@ -131,20 +131,97 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		case 0xee:
 			// Knock
-			c.handleErr(2, 0xfe)
+			c2 := buff[1:] // c2 is [length, keyId]
+
+			kLength := uint(c2[0])
+
+			if uint(len(c2)-2) != kLength { // 2 is 0xeeLL
+				c.log.Warn("Wrong packet length")
+				c.handleErr(2, 0xa1)
+
+				continue
+			}
+
+			c.log.Debug("Fetching user", c2[1:])
+			c2Conn := manager.FetchUserById(c2[1:])
+
+			if c2Conn == nil {
+				c.log.Warn("Could not find c2")
+				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
+
+				continue
+			}
+
+			c2Conn.SendKnock0001(c) // send knock to c2 from c
+
+			if _, err := c.bind.Write([]byte{0xa0, 0xee}); err != nil {
+				c.log.Warn("Could not send the ack pkg")
+
+				continue
+			}
+
 			continue
 		case 0xab:
 			// Knock ans
-			c.log.Warn("Pckt out of path")
-			c.handleErr(2, 0xe0)
+
+			respVal := (buff[1] == 0x01)
+			c.log.Debug("%b", respVal)
+
+			c2 := buff[2:]
+
+			kLength := uint(c2[0])
+
+			if uint(len(c2)-3) != kLength { // 3 is 0xabRR[LL,...]
+				c.log.Warn("Wrong packet length")
+				c.handleErr(2, 0xa1)
+
+				continue
+			}
+
+			c.log.Debug("Fetching user", c2[1:])
+			c2Conn := manager.FetchUserById(c2[1:])
+
+			if c2Conn == nil {
+				c.log.Warn("Could not find c2")
+				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
+
+				continue
+			}
+
+			if _, err := c2Conn.bind.Write(buff); err != nil {
+				c2Conn.log.Warn("Could not send pkg")
+			}
+
+			r := manager.SpawnRoom()
+
+			c.NotifyRoom(r, c2Conn)
+			c2Conn.NotifyRoom(r, c)
+
 			continue
 		case 0xda:
 			// Message
-			c.handleErr(2, 0xfe)
+			var ridLength uint8 = buff[1]
+			rid := buff[2 : 2+ridLength]
+
+			room := manager.FetchRoom(rid)
+			room.SendMessageToRecipients0001(buff, c)
+
+			if _, err := c.bind.Write([]byte{0xa0, 0xda}); err != nil {
+				c.log.Warn("Could not send ack to message")
+			}
+
 			continue
 		case 0xaf:
 			// Room termination
-			c.handleErr(2, 0xfe)
+
+			var ridLength uint8 = buff[1]
+			rid := buff[2 : 2+ridLength]
+
+			room := manager.FetchRoom(rid)
+			room.SendMessageToAllRecipients0001(buff)
+
+			manager.DropRoom(room)
+
 			continue
 		case 0xbf:
 			// Disconnect
@@ -159,4 +236,50 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		}
 	}
+}
+
+func (c2 *Connection) SendKnock0001(c *Connection) error {
+	// Send a knock to c2 from c1
+	buff := []byte{0xae}
+
+	buff = append(buff, byte(c.keyIdLength))
+	buff = append(buff, c.keyId...)
+
+	_, err := c2.bind.Write(buff)
+
+	return err
+}
+
+func (c *Connection) NotifyRoom(r *Room, c2 *Connection) error {
+	// Notify the creation of the room R with the user c2 in it
+
+	buff := []byte{0xac}
+
+	buff = append(buff, byte(r.roomIdLength))
+	buff = append(buff, r.roomId...)
+
+	buff = append(buff, byte(c2.keyIdLength))
+	buff = append(buff, c2.keyId...)
+
+	_, err := c.bind.Write(buff)
+
+	return err
+}
+
+func (r *Room) SendMessageToAllRecipients0001(buff []byte) []error {
+	return r.SendMessageToRecipients0001(buff, nil)
+}
+
+func (r *Room) SendMessageToRecipients0001(buff []byte, sender *Connection) []error {
+	var errs []error
+	var err error
+
+	for _, client := range r.clients {
+		if sender == nil || compare(client.keyId, sender.keyId) {
+			_, err = client.bind.Write(buff)
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
 }

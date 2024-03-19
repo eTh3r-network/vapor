@@ -13,8 +13,9 @@ import (
 )
 
 type Room struct {
-	roomId  uint64
-	clients []*Connection
+	roomId       []byte
+	roomIdLength uint
+	clients      []*Connection
 }
 
 type Connection struct {
@@ -22,7 +23,7 @@ type Connection struct {
 	key         []byte
 	keyId       []byte
 	keyLength   uint16
-	keyIdLength uint16
+	keyIdLength uint
 	rooms       []*Room
 
 	bind net.Conn
@@ -98,8 +99,15 @@ func (c *Connection) Serve(m *Manager) {
 	}
 }
 
-func (c *Connection) NotifyRoomClose(r *Room) {
-	// TODO
+func (c *Connection) NotifyRoomClose(r *Room) error {
+	buff := []byte{0xaf}
+
+	buff = append(buff, byte(r.roomIdLength))
+	buff = append(buff, r.roomId...)
+
+	_, err := c.bind.Write(buff)
+
+	return err
 }
 
 func (c *Connection) ComputeKeyId() int {
