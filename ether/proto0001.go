@@ -239,8 +239,16 @@ func (c *Connection) serve0001(manager *Manager) {
 	}
 }
 
-func (c *Connection) SendKnock0001(c2 *Connection) {
-	return
+func (c2 *Connection) SendKnock0001(c *Connection) error {
+	// Send a knock to c2 from c1
+	buff := []byte{0xae}
+
+	buff = append(buff, c.keyIdLength)
+	buff = append(buff, c.keyId...)
+
+	_, err := c2.bind.Write(buff)
+
+	return err
 }
 
 func (c *Connection) NotifyRoom(r *Room, c2 *Connection) {
