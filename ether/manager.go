@@ -107,6 +107,10 @@ func (m *Manager) FetchRoom(rid []byte) *Room {
 	return nil
 }
 
+func (m *Manager) TerminateRoom(room *Room) {
+	return
+}
+
 func compare(k1 []byte, k2 []byte) bool {
 	if len(k1) != len(k2) {
 		return false

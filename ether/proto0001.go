@@ -115,14 +115,13 @@ func (c *Connection) serve0001(manager *Manager) {
 			}
 
 			keyBuff := make([]byte, 2)
- 			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
-			keyBuff = append(keyBuff, conn.key...) // append the key 
-
+			binary.LittleEndian.PutUint16(keyBuff, conn.keyLength) // append the key length as uint16
+			keyBuff = append(keyBuff, conn.key...)                 // append the key
 
 			respBuff := []byte{0xa0, 0xba}
-			respBuff = append(respBuff[:], keyBuff[:]...) // prepend the pck id 
+			respBuff = append(respBuff[:], keyBuff[:]...) // prepend the pck id
 
-			_, err := c.bind.Write(respBuff) // write 
+			_, err := c.bind.Write(respBuff) // write
 
 			if err != nil {
 				c.log.Warn("Could not send the user key, internal server error")
@@ -136,8 +135,8 @@ func (c *Connection) serve0001(manager *Manager) {
 			var kLength uint16 = 0
 			binary.LittleEndian.PutUint16(c2[:2], kLength)
 
-			if uint16(len(c2) - 4) != kLength {
-			    	c.log.Warn("Wrong packet length")
+			if uint16(len(c2)-4) != kLength {
+				c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 
 				continue
@@ -149,7 +148,7 @@ func (c *Connection) serve0001(manager *Manager) {
 			if c2Conn == nil {
 				c.log.Warn("Could not find c2")
 				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
-				
+
 				continue
 			}
 
@@ -173,8 +172,8 @@ func (c *Connection) serve0001(manager *Manager) {
 			var kLength uint16 = 0
 			binary.LittleEndian.PutUint16(c2[:2], kLength)
 
-			if uint16(len(c2) - 5) != kLength {
-			    	c.log.Warn("Wrong packet length")
+			if uint16(len(c2)-5) != kLength {
+				c.log.Warn("Wrong packet length")
 				c.handleErr(2, 0xa1)
 
 				continue
@@ -186,7 +185,7 @@ func (c *Connection) serve0001(manager *Manager) {
 			if c2Conn == nil {
 				c.log.Warn("Could not find c2")
 				c.handleErr(2, 0xad) // TODO: add 0xad as user not found
-				
+
 				continue
 			}
 
@@ -203,10 +202,10 @@ func (c *Connection) serve0001(manager *Manager) {
 		case 0xda:
 			// Message
 			var ridLength uint8 = buff[1]
-			rid := buff[2:2+ridLength]
+			rid := buff[2 : 2+ridLength]
 
 			room := manager.FetchRoom(rid)
-			room.SendMessageToRecipients0001(buff)
+			room.SendMessageToRecipients0001(buff, c)
 
 			if _, err := c.bind.Write([]byte{0xa0, 0xda}); err != nil {
 				c.log.Warn("Could not send ack to message")
@@ -215,7 +214,15 @@ func (c *Connection) serve0001(manager *Manager) {
 			continue
 		case 0xaf:
 			// Room termination
-			c.handleErr(2, 0xfe)
+
+			var ridLength uint8 = buff[1]
+			rid := buff[2 : 2+ridLength]
+
+			room := manager.FetchRoom(rid)
+			room.SendMessageToAllRecipients0001(buff)
+
+			manager.TerminateRoom(room)
+
 			continue
 		case 0xbf:
 			// Disconnect
@@ -240,8 +247,14 @@ func (c *Connection) NotifyRoom(r *Room, c2 *Connection) {
 	return
 }
 
-func (r *Room) SendMessageToRecipients0001(buff []byte) []error {
-	var errs []error 
+func (r *Room) SendMessageToAllRecipients0001(buff []byte) []error {
+	var errs []error
+
+	return errs
+}
+
+func (r *Room) SendMessageToRecipients0001(buff []byte, sender *Connection) []error {
+	var errs []error
 
 	return errs
 }
